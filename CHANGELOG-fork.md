@@ -129,6 +129,11 @@ publishes an empty body with only a warning on stderr.
 
 ### Fixed
 
+- shells in agterm can reach the local network again after a rebuild. `make deploy` now signs the app,
+  `agterm-session-host`, `agtermctl` and `zmx` with a local self-signed certificate and fixed identifiers,
+  so the Local Network permission is not lost on every build. Without the certificate the build is
+  ad-hoc signed as before; `.claude/rules/release.md` has the one-time setup.
+
 - `tree` and `window list` no longer stall the app for 3 seconds per call once four Live daemons exist.
   `ZmxClient.run` read the child's output only after it exited; zmx writes the listing row by row, so the
   pipe never grows past its initial 512 bytes, zmx blocked on write, the app blocked on exit, and every call
