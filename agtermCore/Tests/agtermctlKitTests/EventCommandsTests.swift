@@ -161,6 +161,10 @@ struct EventCommandsTests {
                          payload: ControlEventPayload(name: "api", status: "blocked", pane: "left", previous: "active")),
             ControlEvent(seq: 11, ts: 0, kind: .remoteOpened, payload: ControlEventPayload(name: "far", host: "buildbox")),
             ControlEvent(seq: 12, ts: 0, kind: .remoteClosed, payload: ControlEventPayload(name: "far", host: "buildbox")),
+            ControlEvent(seq: 13, ts: 0, kind: .linkPath,
+                         payload: ControlEventPayload(name: "api", pane: "right", path: "src/a.swift", line: 12, cwd: "/repo")),
+            ControlEvent(seq: 14, ts: 0, kind: .linkPath,
+                         payload: ControlEventPayload(name: "api", pane: "left", path: "/tmp/my notes.md")),
         ]
         let human = events.map { EventFormatter.human($0, timeZone: TimeZone(secondsFromGMT: 0)!) }
         #expect(human[0] == "00:00:00 status api blocked pane=right blink")
@@ -175,6 +179,8 @@ struct EventCommandsTests {
         #expect(human[9] == "00:00:00 status api blocked previous=active pane=left")
         #expect(human[10] == "00:00:00 remote.opened far host=buildbox")
         #expect(human[11] == "00:00:00 remote.closed far host=buildbox")
+        #expect(human[12] == "00:00:00 link.path api src/a.swift line=12 pane=right cwd=/repo")
+        #expect(human[13] == "00:00:00 link.path api /tmp/my notes.md pane=left")
 
         for event in events {
             let line = try EventFormatter.json(event)

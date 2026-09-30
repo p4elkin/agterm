@@ -44,10 +44,11 @@ public enum ConfigPaths {
         # a time. Further events for a busy line queue in order (256 pending, oldest dropped).
         #
         # The script gets the event as one JSON object on stdin, the shape `agtermctl events --json` prints,
-        # and these variables: AGT_EVENT_KIND, AGT_EVENT_STATUS, AGT_EVENT_HOST, AGT_SESSION_ID,
-        # AGT_WORKSPACE_ID, AGT_WINDOW_ID, AGT_SOCKET. Pass `--socket "$AGT_SOCKET"` to any agtermctl
-        # call. A hook whose command emits another event of its own kind triggers itself again; the
-        # queue bounds concurrency, it does not detect loops.
+        # and these variables: AGT_EVENT_KIND, AGT_EVENT_STATUS, AGT_EVENT_HOST, AGT_EVENT_PANE,
+        # AGT_EVENT_PATH, AGT_EVENT_LINE, AGT_EVENT_CWD, AGT_SESSION_ID, AGT_WORKSPACE_ID, AGT_WINDOW_ID,
+        # AGT_SOCKET. Pass `--socket "$AGT_SOCKET"` to any agtermctl call. A hook whose command emits
+        # another event of its own kind triggers itself again; the queue bounds concurrency, it does not
+        # detect loops.
         #
         # Examples:
         #
@@ -56,6 +57,7 @@ public enum ConfigPaths {
         #   (a redirection does not create its directory: mkdir -p ~/.local/state/agterm first)
         #   on pane.scratch     ~/.config/agterm/hooks/scratch-layout.sh
         #   on tree.changed     ~/.config/agterm/hooks/sync-outline.sh
+        #   on link.path        cd "$AGT_EVENT_CWD" && code -g "$AGT_EVENT_PATH:${AGT_EVENT_LINE:-1}"
         #
         # Uncomment and edit a line below to start.
         # on status [ "$AGT_EVENT_STATUS" = blocked ] || exit 0; afplay /System/Library/Sounds/Glass.aiff

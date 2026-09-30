@@ -1292,6 +1292,9 @@ side, and reads `lastAppliedIsDark` when bare. Refuse it outside XCUITest; provi
   passes through the attach path. So the pair means row visibility only, every producer of those edges
   gets it, and no kind claims the ssh connection's state: the held exit says the command ended, never why.
   A host-side pair (`client.attached` / `client.detached`) is the backlog item, not these kinds.
+- `link.path` is a ⌘-click on a schemeless path, and the app deliberately opens nothing: #131 kept opening
+  files out of the app, so what a path click does is the user's hook. `LinkPolicy.pathDisposition` only
+  gates the shape (length, control characters, a `/`, no leading `-`), since the hook receives it as data.
 - `Session.remoteHost` is immutable and set at construction, because `addSession` saves: a marker written
   afterwards would let one snapshot reach disk carrying the ssh command. `isPersistable` gates every
   producer — the launch snapshot, the Recent Closed session record, and a closed workspace's record, whose

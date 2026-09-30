@@ -129,6 +129,39 @@ final class WindowLibraryTests {
         #expect(library.allOpenSessions().count == 3)
     }
 
+    @Test func storeOwningMatchesTheSessionObjectWhenAnIDRepeatsAcrossWindows() throws {
+        let library = WindowLibrary(directory: directory)
+        let firstStore = try #require(library.activeStore)
+        let original = try #require(firstStore.activeSession)
+        let secondStore = try #require(library.store(for: library.newWindow(name: "work").id))
+        let duplicate = Session(id: original.id, initialCwd: "/tmp")
+        secondStore.workspaces[0].sessions.append(duplicate)
+
+        #expect(library.store(forSession: original.id) === firstStore)
+        #expect(library.store(owning: original) === firstStore)
+        #expect(library.store(owning: duplicate) === secondStore)
+        #expect(library.store(owning: Session(id: original.id, initialCwd: "/tmp")) == nil)
+    }
+
+    @Test func linkPathEventGoesToTheWindowOwningTheClickedSessionObject() throws {
+        let ring = ControlEventRing(runID: UUID())
+        let library = WindowLibrary(directory: directory, controlEventRing: ring)
+        let original = try #require(library.activeStore?.activeSession)
+        let secondStore = try #require(library.store(for: library.newWindow(name: "work").id))
+        let duplicate = Session(id: original.id, initialCwd: "/tmp")
+        secondStore.workspaces[0].sessions.append(duplicate)
+        var seen: [ControlEvent] = []
+        library.onControlEvent = { seen.append($0) }
+
+        #expect(library.recordLinkPathEvent(session: duplicate, pane: .left, path: "a.md", line: nil, cwd: "/tmp"))
+        #expect(!library.recordLinkPathEvent(session: Session(initialCwd: "/tmp"), pane: .left, path: "a.md",
+                                             line: nil, cwd: "/tmp"))
+
+        let events = seen.filter { $0.kind == .linkPath }
+        #expect(events.map(\.workspace) == [secondStore.workspaces[0].id.uuidString])
+        #expect(events.map(\.window) == [library.windowID(for: secondStore)?.uuidString])
+    }
+
     @Test func totalUnseenCountSumsEverySessionAcrossWindows() {
         let library = WindowLibrary(directory: directory)
         #expect(library.totalUnseenCount == 0)

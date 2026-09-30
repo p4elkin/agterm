@@ -68,4 +68,17 @@ extension AppStore {
         )
         return effectiveTitle
     }
+
+    /// Records a clicked schemeless path for `link.path` hooks and `events` readers; the app opens nothing
+    /// itself. `cwd` is the clicked surface's own, since the scratch's is tracked on no session. Returns false,
+    /// emitting nothing, when the session is unresolved.
+    @discardableResult
+    public func recordLinkPathEvent(forSession id: UUID, pane: CommandContext.Pane, path: String, line: Int?,
+                                    cwd: String) -> Bool {
+        guard let session = session(withID: id), let workspace = workspace(forSession: id) else { return false }
+        emitControlEvent(.linkPath, workspace: workspace.id, session: id,
+                         payload: ControlEventPayload(name: session.displayName, pane: pane.rawValue, path: path, line: line,
+                                                      cwd: cwd))
+        return true
+    }
 }

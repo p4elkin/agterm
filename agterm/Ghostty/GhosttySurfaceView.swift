@@ -78,6 +78,9 @@ final class GhosttySurfaceView: NSView, PaneRoleMutableSurface {
     /// `splitCwd`/`splitTitle` so they can't clobber the primary's; cleared when promoted on collapse.
     var isSplitPane = false
 
+    /// The last OSC 7 directory this surface reported: a sessionless scratch's cwd is recorded nowhere else.
+    var reportedPwd: String?
+
     /// Whether the search lifecycle callbacks are wired (the main/split and scratch factories set it). Only
     /// those drive a visible bar and the END close path, so `AppActions.toggleSearch` refuses a
     /// quick-terminal/overlay surface, which would enter libghostty search mode with no bar and no close.
@@ -507,23 +510,6 @@ final class GhosttySurfaceView: NSView, PaneRoleMutableSurface {
     }
 
     // MARK: - Callback entry points
-
-    func applyPwd(_ rawPwd: String) {
-        // already on the main actor (the callback hops via DispatchQueue.main.async); `currentCwd` is observed,
-        // so the sidebar row refreshes live. the OSC 7 value flows unquoted into a /bin/sh -c line via
-        // {AGT_SESSION_PWD} and into every cwd-inheriting spawn, so a newline (an sh -c separator) must never
-        // survive; a real path has none.
-        let pwd = TerminalText.sanitized(rawPwd)
-
-        // no save(): OSC 7 fires on every cd/prompt redraw and would thrash the disk. live cwd is persisted on
-        // quit and on structural mutations, so a crash loses only cwd changes since the last save. the
-        // equality guard matters likewise: an equal write still notifies observers and churns the reconcile.
-        if isSplitPane {
-            if session?.splitCwd != pwd { session?.splitCwd = pwd }
-        } else {
-            if session?.currentCwd != pwd { session?.currentCwd = pwd }
-        }
-    }
 
     func applyTitle(_ rawTitle: String) {
         // already on the main actor; `oscTitle`/`splitTitle` are observed, so the sidebar row and window

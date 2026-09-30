@@ -127,13 +127,8 @@ final class GhosttyCallbacks: @unchecked Sendable {
             DispatchQueue.main.async { view.applyMouseShape(shape) }
             return true
         case GHOSTTY_ACTION_OPEN_URL:
-            // copy the URL out of the LENGTH-DELIMITED buffer synchronously (valid only for this call):
-            // `open_url.url` is a Zig slice, NOT NUL-terminated, so honor `.len` — `String(cString:)` would
-            // over-read into adjacent hyperlink storage. Then open it scheme-validated on the main actor.
-            let openURL = action.action.open_url
-            guard let view = surfaceView(from: target), let ptr = openURL.url else { return true }
-            let link = String(decoding: UnsafeRawBufferPointer(start: ptr, count: Int(openURL.len)), as: UTF8.self)
-            DispatchQueue.main.async { view.openLink(link) }
+            guard let view = surfaceView(from: target), let url = Self.openURL(action.action.open_url) else { return true }
+            DispatchQueue.main.async { view.openLink(url.link, fromOSC8: url.fromOSC8) }
             return true
         case GHOSTTY_ACTION_COLOR_CHANGE:
             // a dynamic color set or RESET via OSC 10/11/12 (fg/bg/cursor) or their 110/111/112 resets,
@@ -206,6 +201,14 @@ final class GhosttyCallbacks: @unchecked Sendable {
     /// The text for a pasteboard: file/web URLs (a Finder copy or a drag-drop) become shell-escaped paths,
     /// space-joined; a plain string comes back verbatim, NOT escaped, since it may be a command the user
     /// means to run. Shared by the clipboard paste path and the drag-drop handler, so a drop inserts as a paste.
+    /// Copies the link out of the LENGTH-DELIMITED buffer, valid only during the callback: `url` is a Zig
+    /// slice, NOT NUL-terminated, so `String(cString:)` would over-read into adjacent hyperlink storage.
+    static func openURL(_ action: ghostty_action_open_url_s) -> (link: String, fromOSC8: Bool)? {
+        guard let ptr = action.url else { return nil }
+        let link = String(decoding: UnsafeRawBufferPointer(start: ptr, count: Int(action.len)), as: UTF8.self)
+        return (link, action.kind == GHOSTTY_ACTION_OPEN_URL_KIND_OSC8)
+    }
+
     static func pasteboardText(_ pb: NSPasteboard) -> String? {
         if let urls = pb.readObjects(forClasses: [NSURL.self]) as? [URL] {
             let parts = urls.map(urlText).filter { !$0.isEmpty }

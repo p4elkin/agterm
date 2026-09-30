@@ -3,12 +3,13 @@ import Foundation
 /// Decides what agterm does when a terminal hyperlink is clicked (`GHOSTTY_ACTION_OPEN_URL`). A terminal
 /// renders UNTRUSTED program output, so an escape-sequence link can carry any scheme. `disposition(for:)`
 /// maps a raw link to OPEN a web/mail URL (`NSWorkspace.open`), REVEAL a LOCAL `file://` link in Finder
-/// (`NSWorkspace.activateFileViewerSelecting`), or IGNORE anything else. `file://` is revealed, never
-/// opened: opening goes through LaunchServices (the Finder double-click path), so a click on
-/// `file:///…/X.app` or `.command` would LAUNCH it, while reveal only selects it. A `file://` whose host is
-/// NOT this machine is ignored, since `activateFileViewerSelecting` on a remote host can trigger a Finder
-/// network/SMB mount. Host-free (Foundation-only) so it is unit-tested — the local host names are injected;
-/// the app-side glue only calls the two `NSWorkspace` methods (same split as `ShellEscape`).
+/// (`NSWorkspace.activateFileViewerSelecting`), REPORT a schemeless path to `link.path` hooks, or IGNORE
+/// anything else. `file://` is revealed, never opened: opening goes through LaunchServices (the Finder
+/// double-click path), so a click on `file:///…/X.app` or `.command` would LAUNCH it, while reveal only
+/// selects it. A `file://` whose host is NOT this machine is ignored, since `activateFileViewerSelecting`
+/// on a remote host can trigger a Finder network/SMB mount. Host-free (Foundation-only) so it is
+/// unit-tested — the local host names are injected; the app-side glue only calls the two `NSWorkspace`
+/// methods or records the event (same split as `ShellEscape`).
 public enum LinkPolicy {
     /// The schemes safe to hand to the system opener — web + mail only, none that hands off to a local
     /// executable/handler.
@@ -18,6 +19,8 @@ public enum LinkPolicy {
     public enum LinkDisposition: Equatable {
         case open(URL)
         case reveal(URL)
+        /// A schemeless path, relative or absolute, with an editor-style `:N` suffix split off as `line`.
+        case path(String, line: Int?)
         case ignore
     }
 
@@ -93,9 +96,14 @@ public enum LinkPolicy {
     /// so Finder only ever sees a plain `/…` path and never leans on the original authority for host
     /// handling; a `file://` with a non-local host, an empty/relative path, a UNC-style `//`-path, an
     /// auto-mount path (`/net`, `/Network`, `/home`, checked AFTER `..` normalization so `/tmp/../net/x`
-    /// can't sneak through), or any other scheme / schemeless / unparseable input → `.ignore`. `localHosts`
+    /// can't sneak through), or any other scheme / unparseable input → `.ignore`. Schemeless input goes to
+    /// `pathDisposition`, which expands a leading `~/` against `homeDirectory` unless it is nil. `localHosts`
     /// is injected (default: this machine's names) so the decision stays host-free and unit-testable.
-    public static func disposition(for raw: String, localHosts: Set<String> = localHostNames) -> LinkDisposition {
+    public static func disposition(for raw: String, localHosts: Set<String> = localHostNames,
+                                   homeDirectory: String? = NSHomeDirectory()) -> LinkDisposition {
+        if raw.range(of: #"^[A-Za-z][A-Za-z0-9+.-]*:"#, options: .regularExpression) == nil {
+            return pathDisposition(raw, homeDirectory: homeDirectory)
+        }
         guard let url = URL(string: raw), let scheme = url.scheme?.lowercased() else { return .ignore }
         if permittedSchemes.contains(scheme) { return .open(url) }
         guard scheme == "file" else { return .ignore }
@@ -113,5 +121,35 @@ public enum LinkPolicy {
         let normalizedPath = Self.lexicallyNormalizedAbsolutePath(rawPath)
         guard !isAutomountPath(normalizedPath) else { return .ignore }
         return .reveal(URL(fileURLWithPath: normalizedPath, isDirectory: false))
+    }
+
+    /// Relative paths need a `/` and no leading `-`. Only an absolute path may hold a space: ghostty resolves
+    /// a match against the pane's pwd, so a pane under `Application Support` delivers one.
+    static let pathPatterns = [
+        #"^[\w.@+][\w.@+~-]*(?:/[\w.@+~-]+)+$"#,
+        #"^~(?:/[\w.@+~-]+)+$"#,
+        #"^(?:/[\w.@+~ -]+)+$"#,
+    ]
+
+    /// A schemeless link is terminal text, so it is reported only when it looks exactly like a path. Trailing
+    /// prose punctuation ghostty's regex keeps (`.`, markdown `**`) is stripped, then an editor-style `:N`,
+    /// `:N-M` or `:N:C` suffix becomes the line. A leading `~/` is expanded, since no hook's shell expands a `~`
+    /// that arrives inside a variable.
+    static func pathDisposition(_ raw: String, homeDirectory: String?) -> LinkDisposition {
+        guard raw.count <= 1024, !raw.contains(where: { $0.isNewline || $0.asciiValue.map { $0 < 0x20 } == true })
+        else { return .ignore }
+        var path = Substring(raw)
+        while let last = path.last, ".*;!?".contains(last) { path = path.dropLast() }
+        var line: Int?
+        if let suffix = path.range(of: #":([0-9]+)(?:-[0-9]+|:[0-9]+)?$"#, options: .regularExpression) {
+            guard let value = Int(path[suffix].dropFirst().prefix { $0.isNumber }), value > 0 else { return .ignore }
+            line = value
+            path = path[..<suffix.lowerBound]
+        }
+        let candidate = String(path)
+        guard pathPatterns.contains(where: { candidate.range(of: $0, options: .regularExpression) != nil })
+        else { return .ignore }
+        guard let homeDirectory, candidate.hasPrefix("~/") else { return .path(candidate, line: line) }
+        return .path(homeDirectory + candidate.dropFirst(), line: line)
     }
 }

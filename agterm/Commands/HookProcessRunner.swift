@@ -115,6 +115,10 @@ final class HookProcessRunner: HookLauncher {
         environment["AGT_EVENT_KIND"] = event.kind.rawValue
         environment["AGT_EVENT_STATUS"] = event.payload.status ?? ""
         environment["AGT_EVENT_HOST"] = event.payload.host ?? ""
+        environment["AGT_EVENT_PANE"] = event.payload.pane ?? ""
+        environment["AGT_EVENT_PATH"] = event.payload.path ?? ""
+        environment["AGT_EVENT_LINE"] = event.payload.line.map(String.init) ?? ""
+        environment["AGT_EVENT_CWD"] = event.payload.cwd ?? ""
         environment["AGT_SESSION_ID"] = event.session ?? ""
         environment["AGT_WORKSPACE_ID"] = event.workspace ?? ""
         environment["AGT_WINDOW_ID"] = event.window ?? ""

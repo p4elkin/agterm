@@ -553,14 +553,44 @@ extension GhosttySurfaceView: @preconcurrency NSTextInputClient {
         }
     }
 
+    /// A clicked path to record as a `link.path` event.
+    struct LinkPathClick {
+        let session: Session
+        let pane: CommandContext.Pane
+        let cwd: String
+        let path: String
+        let line: Int?
+    }
+
+    /// Records a clicked path as a `link.path` event. Installed once by the app, which owns the library.
+    static var linkPathClicked: ((LinkPathClick) -> Void)?
+
     /// Acts on a clicked terminal link (`GHOSTTY_ACTION_OPEN_URL`); the scheme/host decision lives in the
     /// host-free `LinkPolicy`. A `file://` link is REVEALED in Finder, never opened — reveal executes nothing.
-    func openLink(_ raw: String) {
-        switch LinkPolicy.disposition(for: raw) {
+    /// A schemeless path opens nothing either: it only becomes an event a `link.path` hook may act on, and only
+    /// when it is text the user saw. An OSC 8 target can differ from its visible label, so it never reaches one.
+    func openLink(_ raw: String, fromOSC8: Bool) {
+        let owner = linkPane
+        // a remote row's main and split print the far Mac's `~`; only its scratch runs here.
+        let farHome = owner.map { $0.0.remoteHost != nil && $0.1 != .scratch } ?? false
+        switch LinkPolicy.disposition(for: raw, homeDirectory: farHome ? nil : NSHomeDirectory()) {
         case let .open(url): NSWorkspace.shared.open(url)
         case let .reveal(url): NSWorkspace.shared.activateFileViewerSelecting([url])
+        case let .path(path, line):
+            guard !fromOSC8, let (session, pane) = owner else { return }
+            // before its first OSC 7 the scratch is where it launched, which a remote row's session cwd is not.
+            let cwd = reportedPwd ?? (pane == .scratch ? workingDirectory : session.cwd(for: pane))
+            Self.linkPathClicked?(LinkPathClick(session: session, pane: pane, cwd: cwd, path: path, line: line))
         case .ignore: return
         }
+    }
+
+    /// Main and split surfaces carry `session`, the scratch only `focusSession`. An overlay or the quick
+    /// terminal reports nothing.
+    private var linkPane: (Session, CommandContext.Pane)? {
+        if let session { return (session, (session.splitSurface as? GhosttySurfaceView) === self ? .right : .left) }
+        if let owner = focusSession, (owner.scratchSurface as? GhosttySurfaceView) === self { return (owner, .scratch) }
+        return nil
     }
 }
 

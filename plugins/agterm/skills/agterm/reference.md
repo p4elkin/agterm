@@ -56,6 +56,13 @@ The event kinds and payloads are:
   presence in the local tree, never the ssh connection: undo re-emits `remote.opened`, and an ssh that
   died leaves the row holding its exit line until it is closed. Closing a remote split pane alone emits
   neither.
+- `link.path`: session `name`, the `pane` (`left`, `right` or `scratch`), its `cwd`, `path` and `line`,
+  emitted on a ⌘-click on a schemeless file path. The app opens nothing, so this event is the whole
+  feature. A file that exists under the pane's directory arrives absolute; a path with a line number or
+  a missing file arrives as printed, to be read against `cwd`, with a leading `~/` expanded except in a
+  remote row's main or split pane. A trailing `:N`, `:N-M` or `:N:C` moves to `line` and trailing prose
+  punctuation is dropped. Overlay and quick-terminal clicks emit nothing. Keep the hook to a reader (an
+  editor or viewer): `open` hands the path to LaunchServices, which runs a printed `.app` or `.command`.
 
 Every event has `seq` (app-wide sequence), `ts` (Unix timestamp), `kind`, optional
 `window`/`workspace`/`session` ids, and `payload`. Human mode prints one compact line. `--json` emits
@@ -1541,8 +1548,8 @@ Built-in action names for `map` include: `new_window`, `new_workspace`, `new_ses
 line, blank and `#` lines ignored, the remainder after the kind passed to `/bin/sh -c` untouched.
 Several lines per kind are independent hooks; an identical kind+command line is skipped with a
 diagnostic. The script gets the event as one JSON object on stdin (the `events --json` shape) followed
-by a newline and EOF, plus `AGT_EVENT_KIND`, `AGT_EVENT_STATUS`, `AGT_EVENT_HOST`, `AGT_SESSION_ID`,
-`AGT_WORKSPACE_ID`, `AGT_WINDOW_ID` and `AGT_SOCKET`, each set explicitly and empty when the event lacks the field. It runs
+by a newline and EOF, plus `AGT_EVENT_KIND`, `AGT_EVENT_STATUS`, `AGT_EVENT_HOST`, `AGT_EVENT_PANE`,
+`AGT_EVENT_PATH`, `AGT_EVENT_LINE`, `AGT_EVENT_CWD`, `AGT_SESSION_ID`, `AGT_WORKSPACE_ID`, `AGT_WINDOW_ID` and `AGT_SOCKET`, each set explicitly and empty when the event lacks the field. It runs
 detached in the app's working directory with the widened `PATH` a custom command gets; pass
 `--socket "$AGT_SOCKET"` to any `agtermctl` call. One process per line at a time; further events queue
 in order up to 256, then the oldest is dropped and counted. No timeout. A non-zero exit, a failed spawn

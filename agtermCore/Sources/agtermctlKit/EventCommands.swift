@@ -81,6 +81,12 @@ enum EventFormatter {
             return "\(time) \(event.kind.rawValue) \(name) \(event.payload.status ?? "")"
         case .remoteOpened, .remoteClosed:
             return "\(time) \(event.kind.rawValue) \(name) host=\(event.payload.host ?? "")"
+        case .linkPath:
+            var parts = [time, event.kind.rawValue, name, event.payload.path ?? ""]
+            if let line = event.payload.line { parts.append("line=\(line)") }
+            if let pane = event.payload.pane { parts.append("pane=\(pane)") }
+            if let cwd = event.payload.cwd { parts.append("cwd=\(cwd)") }
+            return parts.joined(separator: " ")
         }
     }
 }

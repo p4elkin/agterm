@@ -187,6 +187,25 @@ final class AppStoreEventTests {
         #expect(batch.items[0].payload.body == "tests passed")
     }
 
+    @Test func linkPathRecordingCarriesPathLinePaneAndNeedsASession() throws {
+        let library = WindowLibrary(directory: directory, controlEventRing: ControlEventRing(runID: run))
+        let store = try #require(library.activeStore)
+        let session = try #require(store.activeSession)
+        let anchor = try eventBatch(library.readEvents(ControlEventReadOptions(cursor: nil, kinds: nil, limit: 100)))
+
+        #expect(!store.recordLinkPathEvent(forSession: UUID(), pane: .left, path: "src/a.swift", line: nil, cwd: "/repo"))
+        #expect(store.recordLinkPathEvent(forSession: session.id, pane: .scratch, path: "src/a.swift", line: 12, cwd: "/scratch"))
+
+        let batch = try eventBatch(library.readEvents(ControlEventReadOptions(
+            cursor: ControlEventCursor(run: anchor.run, after: anchor.next), kinds: [.linkPath], limit: 100
+        )))
+        #expect(batch.items.count == 1)
+        #expect(batch.items[0].session == session.id.uuidString)
+        #expect(batch.items[0].workspace == store.workspace(forSession: session.id)?.id.uuidString)
+        #expect(batch.items[0].payload == ControlEventPayload(name: session.displayName, pane: "scratch",
+                                                              path: "src/a.swift", line: 12, cwd: "/scratch"))
+    }
+
     @MainActor
     private final class NotifySink: PresentationSink {
         var notifies: [PresentationNotify] = []

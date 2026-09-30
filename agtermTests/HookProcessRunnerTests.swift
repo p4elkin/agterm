@@ -114,16 +114,31 @@ final class HookProcessRunnerTests: XCTestCase {
         let env = scratch.appendingPathComponent("env").path
         setenv("AGT_SESSION_ID", "inherited-and-wrong", 1)
         setenv("AGT_EVENT_HOST", "inherited-and-wrong", 1)
+        setenv("AGT_EVENT_PATH", "inherited-and-wrong", 1)
         defer {
             unsetenv("AGT_SESSION_ID")
             unsetenv("AGT_EVENT_HOST")
+            unsetenv("AGT_EVENT_PATH")
         }
-        let script = "printf '[%s][%s][%s][%s]' \"$AGT_EVENT_STATUS\" \"$AGT_SESSION_ID\" \"$AGT_WINDOW_ID\" \"$AGT_EVENT_HOST\" > '\(env)'"
+        let script = "printf '[%s][%s][%s][%s][%s][%s][%s][%s]' \"$AGT_EVENT_STATUS\" \"$AGT_SESSION_ID\" \"$AGT_WINDOW_ID\" "
+            + "\"$AGT_EVENT_HOST\" \"$AGT_EVENT_PANE\" \"$AGT_EVENT_PATH\" \"$AGT_EVENT_LINE\" \"$AGT_EVENT_CWD\" > '\(env)'"
 
         let (outcome, _) = try await run(script, event: ControlEvent(seq: 1, ts: 1, kind: .treeChanged))
 
         XCTAssertEqual(outcome.exits, [0])
-        XCTAssertEqual(try String(contentsOfFile: env, encoding: .utf8), "[][][][]")
+        XCTAssertEqual(try String(contentsOfFile: env, encoding: .utf8), "[][][][][][][][]")
+    }
+
+    func testLinkPathExportsPathLinePaneAndCwd() async throws {
+        let env = scratch.appendingPathComponent("env").path
+        let event = ControlEvent(seq: 5, ts: 5.5, kind: .linkPath, window: "win-1", workspace: "ws-1", session: "sess-1",
+                                 payload: ControlEventPayload(name: "api", pane: "right", path: "my notes.md", line: 12, cwd: "/tmp/a b"))
+        let script = "printf '[%s][%s][%s][%s]' \"$AGT_EVENT_PATH\" \"$AGT_EVENT_LINE\" \"$AGT_EVENT_PANE\" \"$AGT_EVENT_CWD\" > '\(env)'"
+
+        let (outcome, _) = try await run(script, event: event)
+
+        XCTAssertEqual(outcome.exits, [0])
+        XCTAssertEqual(try String(contentsOfFile: env, encoding: .utf8), "[my notes.md][12][right][/tmp/a b]")
     }
 
     func testRemoteEdgeExportsTheHostAndCarriesItOnStdin() async throws {

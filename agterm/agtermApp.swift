@@ -236,6 +236,10 @@ struct agtermApp: App {
                         NotificationManager.shared.actions = actions
                         NotificationManager.shared.library = library
                         NotificationManager.shared.start()
+                        GhosttySurfaceView.linkPathClicked = { [library] click in
+                            library.recordLinkPathEvent(session: click.session, pane: click.pane, path: click.path,
+                                                        line: click.line, cwd: click.cwd)
+                        }
                         let paneServices = surfaceServices
                         PaneLead.reattach = { old, claim in Self.reattachPane(old, claim: claim, services: paneServices) }
                         PaneLead.roleChanged = { [library] view in

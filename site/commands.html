@@ -655,7 +655,9 @@
                 <span style="font-family: &quot;JetBrains Mono&quot;, monospace">remote.closed</span> (a local row created by <span style="font-family: &quot;JetBrains Mono&quot;, monospace">zmx attach</span> entered or
                 left the tree, carrying its ssh destination as <span style="font-family: &quot;JetBrains Mono&quot;, monospace">host</span>; they ride the
                 created/closed edges, so undo re-emits <span style="font-family: &quot;JetBrains Mono&quot;, monospace">remote.opened</span>, and they say nothing
-                about whether ssh is still connected). <span style="font-family: &quot;JetBrains Mono&quot;, monospace">--kind</span> may be repeated or
+                about whether ssh is still connected), and <span style="font-family: &quot;JetBrains Mono&quot;, monospace">link.path</span> (a ⌘-click on a plain file path,
+                carrying <span style="font-family: &quot;JetBrains Mono&quot;, monospace">path</span>, <span style="font-family: &quot;JetBrains Mono&quot;, monospace">line</span> from a <span style="font-family: &quot;JetBrains Mono&quot;, monospace">:N</span> suffix, <span style="font-family: &quot;JetBrains Mono&quot;, monospace">pane</span> and its <span style="font-family: &quot;JetBrains Mono&quot;, monospace">cwd</span>; agterm opens nothing
+                itself). <span style="font-family: &quot;JetBrains Mono&quot;, monospace">--kind</span> may be repeated or
                 comma-separated; an unknown kind errors. Every event carries
                 <span style="font-family: &quot;JetBrains Mono&quot;, monospace">seq</span>,
                 <span style="font-family: &quot;JetBrains Mono&quot;, monospace">ts</span>,

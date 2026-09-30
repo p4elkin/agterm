@@ -168,4 +168,52 @@ struct LinkPolicyTests {
         }
         #expect(url.absoluteString == "file:///tmp/x.md")
     }
+
+    // MARK: schemeless paths — what ghostty's built-in path link delivers
+
+    @Test(arguments: [
+        ("docs/plans/x-spec.md", "docs/plans/x-spec.md", nil),
+        ("agterm/Ghostty/GhosttySurfaceView+Input.swift:566", "agterm/Ghostty/GhosttySurfaceView+Input.swift", 566),
+        ("src/a.ts:10-20", "src/a.ts", 10),
+        ("src/a.go:10:4", "src/a.go", 10),
+        ("../sibling/README.md", "../sibling/README.md", nil),
+        ("~/notes.md", "/home/me/notes.md", nil),
+        ("/Users/me/dev/x/y.py", "/Users/me/dev/x/y.py", nil),
+        ("/Users/me/Library/Application Support/x/y.json", "/Users/me/Library/Application Support/x/y.json", nil),
+        ("docs/x.md.", "docs/x.md", nil),
+        ("docs/x.md**", "docs/x.md", nil),
+        ("src/x.swift:12;", "src/x.swift", 12),
+        ("src/Makefile", "src/Makefile", nil),
+        ("bin/tool.exe", "bin/tool.exe", nil),
+    ] as [(String, String, Int?)])
+    func schemelessPathIsReported(_ raw: String, _ path: String, _ line: Int?) {
+        #expect(LinkPolicy.disposition(for: raw, localHosts: Self.localHosts, homeDirectory: "/home/me") == .path(path, line: line))
+    }
+
+    @Test(arguments: [
+        "README.md",                     // no `/`
+        "x.md:12",
+        "-rf/x.md",                      // would read as an option
+        "docs/my plan.md",               // only an absolute path may hold a space
+        "docs/x.md\nrm -rf ~",
+        "docs/x\u{1B}[31m.md",
+        "docs/$HOME/x.md",
+        "docs/x%0A.md",
+        "docs/x.md#frag",
+        "//server/share/x.md",
+        "src/x.swift:0",
+    ])
+    func schemelessNonPathIgnored(_ raw: String) {
+        #expect(LinkPolicy.disposition(for: raw, localHosts: Self.localHosts) == .ignore)
+    }
+
+    @Test func aNilHomeKeepsTheTilde() {
+        #expect(LinkPolicy.disposition(for: "~/notes.md:3", localHosts: Self.localHosts, homeDirectory: nil)
+            == .path("~/notes.md", line: 3))
+    }
+
+    @Test func overlongPathIgnored() {
+        let raw = "docs/" + String(repeating: "a", count: 1020) + ".md"
+        #expect(LinkPolicy.disposition(for: raw, localHosts: Self.localHosts) == .ignore)
+    }
 }

@@ -27,6 +27,9 @@ struct ControlEventProtocolTests {
                          payload: ControlEventPayload(name: "far", host: "buildbox")),
             ControlEvent(seq: 10, ts: 10.5, kind: .remoteClosed, window: "win", workspace: "work", session: "sess",
                          payload: ControlEventPayload(name: "far", host: "buildbox")),
+            ControlEvent(seq: 11, ts: 11.5, kind: .linkPath, window: "win", workspace: "work", session: "sess",
+                         payload: ControlEventPayload(name: "api", pane: "right", path: "src/a.swift", line: 12,
+                                                      cwd: "/repo")),
         ]
 
         let data = try JSONEncoder().encode(events)
@@ -61,6 +64,9 @@ struct ControlEventProtocolTests {
                          payload: ControlEventPayload(name: "far", host: "buildbox")),
             ControlEvent(seq: 10, ts: 10.5, kind: .remoteClosed, window: "win", workspace: "work", session: "sess",
                          payload: ControlEventPayload(name: "far", host: "buildbox")),
+            ControlEvent(seq: 11, ts: 11.5, kind: .linkPath, window: "win", workspace: "work", session: "sess",
+                         payload: ControlEventPayload(name: "api", pane: "right", path: "src/a.swift", line: 12,
+                                                      cwd: "/repo")),
         ]
         let expected = [
             ##"{"kind":"status","payload":{"blink":true,"color":"#aabbcc","name":"api","pane":"right","##
@@ -74,6 +80,8 @@ struct ControlEventProtocolTests {
             ##"{"kind":"status","payload":{"name":"api","previous":"active","status":"blocked"},"seq":8,"session":"sess","ts":8.5,"window":"win","workspace":"work"}"##,
             ##"{"kind":"remote.opened","payload":{"host":"buildbox","name":"far"},"seq":9,"session":"sess","ts":9.5,"window":"win","workspace":"work"}"##,
             ##"{"kind":"remote.closed","payload":{"host":"buildbox","name":"far"},"seq":10,"session":"sess","ts":10.5,"window":"win","workspace":"work"}"##,
+            ##"{"kind":"link.path","payload":{"cwd":"\/repo","line":12,"name":"api","pane":"right","path":"src\/a.swift"},"##
+                + ##""seq":11,"session":"sess","ts":11.5,"window":"win","workspace":"work"}"##,
         ]
 
         #expect(try events.map(canonicalJSON) == expected)

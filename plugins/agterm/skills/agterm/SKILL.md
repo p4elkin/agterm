@@ -8,7 +8,7 @@ description: >
   post a HUD or a desktop notification; show a picker or question dialog; display an image inline; type
   into a session, copy its selection or search its scrollback; manage windows; change font size; set the
   theme; reload or edit the keymap, event hooks and agterm-scoped ghostty config; subscribe to status,
-  notification, lifecycle, pane-visibility and tree-change events.
+  notification, lifecycle, pane, tree and clicked-path events.
   Covers the window/workspace/session addressing model and the AGTERM_* environment a spawned shell sees,
   attaching a session running on another Mac, the cookbook recipes, the running version, and diagnosing
   problems or filing an agterm bug or feature request.
@@ -17,7 +17,7 @@ when_to_use: >
   split the pane, close the overlay, show a message over the session, show a question dialog, agtermctl ask,
   show an image inline, show this HTML page or artifact, make an HTML page or explainer for this and show
   it, make a page that switches sessions or returns a choice, preview the report you generated, show this URL or the running dev server, search the scrollback, attach a session from another Mac, what recipes are there,
-  the keymap editor will not open.
+  make a ⌘-clicked file path open in my editor, the keymap editor will not open.
 allowed-tools: Bash(agtermctl *)
 ---
 
@@ -29,7 +29,7 @@ agterm is a native macOS terminal. It exposes a programmatic control channel ove
 socket, driven by the companion CLI `agtermctl`. Use it to build and steer terminal layouts, run
 programs in overlays, type into sessions, notify the user in the exact session you are working in,
 and subscribe to control events. Events cover status, notifications, session lifecycle, split and
-scratch pane visibility, and structural tree changes; `hooks.conf` runs a shell line on any of them. They do not stream terminal output; use `session text` to read a buffer.
+scratch pane visibility, structural tree changes, and a ⌘-clicked file path (`link.path`, which agterm itself never opens); `hooks.conf` runs a shell line on any of them. They do not stream terminal output; use `session text` to read a buffer.
 
 ## Am I inside agterm?
 
@@ -272,7 +272,7 @@ that window, omitted when no pick is pending.
 **events**: continuously print control events, subscribing from the current tail when no cursor is
 given. Use `--json` for one bare event object per line; filter with repeatable or comma-separated
 `--kind` over `status`, `notify`, `session.created`, `session.closed`, `tree.changed`, `pane.split`,
-`pane.scratch`, `remote.opened` and `remote.closed`; resume with paired `--run RUN --after SEQ`; and set
+`pane.scratch`, `remote.opened`, `remote.closed` and `link.path`; resume with paired `--run RUN --after SEQ`; and set
 page size with `--limit 1...1000`. The app retains 4,096 events for one process run. Cursor run changes,
 expiry, and ahead-of-tail errors are fatal and are never silently rebaselined. There is no
 terminal-output event stream.
@@ -609,7 +609,7 @@ Custom commands opt into a failure panel with `command "Build" [chord] --error-h
 with `--error-position POS` and `--error-pane left|right`; see
 [keymap.conf format](reference.md#keymapconf-format) for the parsing rules and defaults.
 
-**hooks** — `hooks reload` — re-read `hooks.conf` (prints the parse-diagnostic count); `hooks list` — every `on <kind> <shell...>` line with its running pid and elapsed seconds, pending and dropped counts, last failure, and a retired marker for a removed line whose script still runs. A hook gets the event JSON on stdin plus `AGT_EVENT_KIND`, `AGT_EVENT_STATUS`, `AGT_EVENT_HOST`, `AGT_SESSION_ID`, `AGT_WORKSPACE_ID`, `AGT_WINDOW_ID` and `AGT_SOCKET`; one process per line at a time with a 256-deep queue behind it. Both commands are app-global and refuse a target or `--window`.
+**hooks** — `hooks reload` — re-read `hooks.conf` (prints the parse-diagnostic count); `hooks list` — every `on <kind> <shell...>` line with its running pid and elapsed seconds, pending and dropped counts, last failure, and a retired marker for a removed line whose script still runs. A hook gets the event JSON on stdin plus `AGT_EVENT_KIND`, `AGT_EVENT_STATUS`, `AGT_EVENT_HOST`, `AGT_EVENT_PANE`, `AGT_EVENT_PATH`, `AGT_EVENT_LINE`, `AGT_EVENT_CWD`, `AGT_SESSION_ID`, `AGT_WORKSPACE_ID`, `AGT_WINDOW_ID` and `AGT_SOCKET`; one process per line at a time with a 256-deep queue behind it. Both commands are app-global and refuse a target or `--window`.
 
 **config** - `config reload` - re-read the agterm-scoped `ghostty.conf` (prints the diagnostic count).
 
