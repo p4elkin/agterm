@@ -1138,6 +1138,7 @@ struct SocketClientTests {
         #expect(error.description.contains("agterm may be stopped or unable to accept connections"))
         // the absent lock file sets errno to ENOENT inside the probe, after the connect error is read
         #expect(error.description.contains("Connection refused"))
+        #expect(error.connectErrno == ECONNREFUSED)
     }
 
     @Test func aMissingSocketWithAHeldOwnershipLockReportsThePresentOwner() throws {
@@ -1159,6 +1160,7 @@ struct SocketClientTests {
         let error = try #require(throws: SocketClientError.self) { _ = try SocketClient(path: path).connect() }
         #expect(error.description.contains("agterm may be stopped or unable to accept connections"))
         #expect(error.description.contains("No such file or directory"))
+        #expect(error.connectErrno == ENOENT)
     }
 
     @Test func probingTheOwnershipLockLeavesItAcquirable() throws {

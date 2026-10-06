@@ -85,8 +85,10 @@ Cursor failures return `ok: false`, one of `event run changed`, `event cursor ex
 `event cursor is ahead of the current sequence`, plus the current empty anchor under
 `result.events`. Treat them as data-loss boundaries. Do not silently use the supplied anchor unless
 the caller explicitly accepts dropping the missing interval. `agtermctl events` exits non-zero on a
-cursor, transport, or server error and does not retry forever while the app is absent. SIGINT and
-SIGTERM use normal process behavior.
+cursor, transport, or server error. The one exception is a refused connection once the stream holds a
+cursor, which a busy app's full accept queue produces: the CLI retries with the same cursor, waiting
+250 ms and doubling up to 4 s, and exits non-zero after about 30 s of refusals in a row, so it never
+waits forever on an absent app. SIGINT and SIGTERM use normal process behavior.
 
 ## Addressing
 

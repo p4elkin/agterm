@@ -698,7 +698,10 @@
                 A changed app run, an expired cursor, or a cursor ahead of the current sequence is a hard error carrying the ring's
                 current anchor — treat it as a data-loss boundary rather than silently rebaselining.
                 <span style="font-family: &quot;JetBrains Mono&quot;, monospace">agtermctl events</span> exits non-zero on those, on a
-                server error, and on a missing app or socket. There is no terminal-output or scrollback stream.
+                server error, and on a missing app or socket. Once the stream holds a cursor, a refused connection, which a busy
+                app's full accept queue also returns, is retried with that cursor for about 30 seconds before the stream exits;
+                a refusal on the first read still exits at once. There is no
+                terminal-output or scrollback stream.
               </p>
             </div>
           </section>
