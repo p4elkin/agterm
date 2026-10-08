@@ -163,7 +163,7 @@ struct EventCommandsTests {
         var state = command.makeState()
 
         let error = try #require(throws: SocketClientError.self) {
-            while true { try command.poll(state: &state, dependencies: dependencies) }
+            for _ in 0..<100 { try command.poll(state: &state, dependencies: dependencies) }
         }
 
         #expect(error.connectErrno == ECONNREFUSED)

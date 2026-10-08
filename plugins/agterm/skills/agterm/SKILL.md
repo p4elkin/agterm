@@ -279,8 +279,8 @@ selection moved; carries the session that lost it as `previous`), `tree.changed`
 `pane.scratch`, `remote.opened` and `remote.closed`; resume with paired `--run RUN --after SEQ`; and set
 page size with `--limit 1...1000`. The app retains 4,096 events for one process run. Cursor run changes,
 expiry, and ahead-of-tail errors are fatal and are never silently rebaselined. Once the stream holds a
-cursor, a refused connection is retried with that cursor for about 30 s before the stream exits; a
-refusal on the first read still exits at once. There is no
+cursor, a refused connection is retried with that cursor for about 30 s before the stream exits.
+Without a cursor, a refused connection exits at once. There is no
 terminal-output event stream.
 
 **workspace** — `workspace new [name] [--collapsed]` (`--collapsed` creates it closed in the sidebar so you can fill
